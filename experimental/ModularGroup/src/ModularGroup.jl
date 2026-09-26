@@ -247,6 +247,7 @@ end
 
 Base.hash(x::ModularGroupElem, h::UInt) = hash(matrix(x), h)
 
+# TODO: _SL2Z_fp() should get a public accessor.
 @doc raw"""
     word_gens(G::ModularGroup)
 
