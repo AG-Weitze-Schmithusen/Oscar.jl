@@ -134,7 +134,9 @@ end
 
 Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with respect to ``L``.
 
-The generator ``S`` (rotation by ``π/2`` counterclockwise) of ``{\rm SL}_2(\mathbb{Z})`` can be viewed as an affine map on ``T_n`` if we assume that the lower left corner is fixed. This function returns the corresponding map on the homology as a matrix with respect to ``L``.
+The generator ``S`` (rotation by ``\pi / 2`` counterclockwise) of ``{\rm SL}_2(\mathbb{Z})`` can be viewed as an affine map on
+``T_n`` if we assume that the lower left corner is fixed. This function returns the corresponding map on the homology as a matrix
+with respect to ``L``.
 
 ```jldoctest
 julia> matrix(ZZ, action_of_s_on_homology_of_tn(2))
