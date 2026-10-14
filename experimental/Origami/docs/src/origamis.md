@@ -52,4 +52,6 @@ translation_group_on_homology_of_tn(n::Int)
 action_of_t_on_homology_of_tn(n::Int)
 action_of_s_on_homology_of_tn(n::Int)
 action_of_matrix_on_homology_of_tn(n::Int, A::Matrix)
+apply_S_to_loop(n::Int, k::Int)
+action_of_s_on_extended_homology_of_tn(n::Int)
 ```

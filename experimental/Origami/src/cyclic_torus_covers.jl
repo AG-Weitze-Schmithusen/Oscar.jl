@@ -89,7 +89,7 @@ function base_change_l_to_s(n::Int)
 end
 
 @doc raw"""
-    translation_group_on_homology_of_tn(n::Int64)
+    translation_group_on_homology_of_tn(n::Int)
 
 Returns: the group of translations (as matrices) acting on monodromy vectors with respect to ``L``. 
 
@@ -110,7 +110,7 @@ function translation_group_on_homology_of_tn(n::Int)
 end
 
 @doc raw"""
-    action_of_t_on_homology_of_tn(n::Int64)
+    action_of_t_on_homology_of_tn(n::Int)
 
 Returns: a matrix representing the action of the generator ``T`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with respect to ``L``.
 
@@ -130,7 +130,7 @@ function action_of_t_on_homology_of_tn(n::Int)
 end
 
 @doc raw"""
-    action_of_s_on_homology_of_tn(n::Int64)
+    action_of_s_on_homology_of_tn(n::Int)
 
 Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with respect to ``L``.
 
@@ -152,7 +152,7 @@ function action_of_s_on_homology_of_tn(n::Int)
 end
 
 @doc raw"""
-    action_of_matrix_on_homology_of_tn(n::Int64, A::Matrix)
+    action_of_matrix_on_homology_of_tn(n::Int, A::Matrix)
 
 Returns: a matrix representing the action of ``A \in {\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with respect to ``L``.
 
@@ -180,11 +180,11 @@ function action_of_matrix_on_homology_of_tn(n::Int, A::Matrix)
 end
 
 @doc raw"""
-    apply_S_to_loop(n::Int64, k::Int64)
+    apply_S_to_loop(n::Int, k::Int)
 
 Returns: the index of the loop obtained by applying the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` to the loop with index ``k`` in the homology of ``T_n`` with respect to ``L``. This is simply the index of the loop obtained by rotating the loop with index ``k`` by ``\pi / 2`` counterclockwise around the left bottom puncture.
 """
-function apply_S_to_loop(n, k)
+function apply_S_to_loop(n::Int, k::Int)
     y = div(k - 1, n)
     x = mod(k - 1, n)
 
@@ -196,12 +196,12 @@ function apply_S_to_loop(n, k)
 end
 
 @doc raw"""
-    action_of_s_on_extended_homology_of_tn(n::Int64)
+    action_of_s_on_extended_homology_of_tn(n::Int)
 
 Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with
 respect to ``L`` extended by the loop around the ``n^2``-th puncture.
 """
-function action_of_s_on_extended_homology_of_tn(n)
+function action_of_s_on_extended_homology_of_tn(n::Int)
     N = n^2 + 1
     dim = n^2 + 2
 
