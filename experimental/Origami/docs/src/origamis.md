@@ -48,4 +48,8 @@ comb_origami(n::Int, x::Int, y::Int)
 cyclic_torus_cover_origamiS(n::Int, d::Int, v::Vector{Int64})
 cyclic_torus_cover_origamiL(n::Int, d::Int, v::Vector{Int64})
 base_change_l_to_s(n::Int)
+translation_group_on_homology_of_tn(n::Int)
+action_of_t_on_homology_of_tn(n::Int)
+action_of_s_on_homology_of_tn(n::Int)
+action_of_matrix_on_homology_of_tn(n::Int, A::Matrix)
 ```

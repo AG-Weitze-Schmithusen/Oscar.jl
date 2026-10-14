@@ -114,7 +114,7 @@ end
 
 Returns: a matrix representing the action of the generator ``T`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with respect to ``L``.
 
-The generator ``T`` (shearing to the right) of ``{\rm SL}}_2(\mathbb{Z})`` can be viewed as an affine map on ``T_n`` if we assume that the lower left corner is fixed. This function returns the corresponding map on the homology as a matrix with respect to ``L``.
+The generator ``T`` (shearing to the right) of ``{\rm SL}_2(\mathbb{Z})`` can be viewed as an affine map on ``T_n`` if we assume that the lower left corner is fixed. This function returns the corresponding map on the homology as a matrix with respect to ``L``.
 
 ```jldoctest
 julia> matrix(ZZ, action_of_t_on_homology_of_tn(2))
@@ -196,9 +196,9 @@ function apply_S_to_loop(n, k)
 end
 
 @doc raw"""
-    action_of_s_on_the_loops(n::Int64)
+    action_of_s_on_extended_homology_of_tn(n::Int64)
 
-Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})` on the homology of ``T_n`` with
+Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with
 respect to ``L`` extended by the loop around the ``n^2``-th puncture.
 """
 function action_of_s_on_extended_homology_of_tn(n)
