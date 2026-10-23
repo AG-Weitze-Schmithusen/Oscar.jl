@@ -184,6 +184,14 @@ end
     apply_S_to_loop(n::Int, k::Int)
 
 Returns: the index of the loop obtained by applying the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` to the loop with index ``k`` in the homology of ``T_n`` with respect to ``L``. This is simply the index of the loop obtained by rotating the loop with index ``k`` by ``\pi / 2`` counterclockwise around the left bottom puncture.
+
+```jldoctest
+julia> Oscar.apply_S_to_loop(3, 2)
+4
+
+julia> Oscar.apply_S_to_loop(3, 4)
+3
+```
 """
 function apply_S_to_loop(n::Int, k::Int)
     y = div(k - 1, n)
@@ -201,6 +209,26 @@ end
 
 Returns: a matrix representing the action of the generator ``S`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with
 respect to ``L`` extended by the loop around the ``n^2``-th puncture.
+
+Without its last row and column, the matrix agrees with [`action_of_s_on_homology_of_tn`](@ref), except for the column of
+the loop that ``S`` maps to the loop around the ``n^2``-th puncture. That loop is not part of the basis ``L``, so in the
+non-extended homology it is replaced by minus the sum of all other puncture loops, giving the column ``(0, 0, -1, \dots, -1)``.
+In other words, both actions are compatible with the projection that maps the additional loop to minus the sum of the
+other puncture loops.
+
+Since the extended homology lacks the relation that the sum of all puncture loops is zero, this matrix and the one of
+[`action_of_t_on_extended_homology_of_tn`](@ref) do not satisfy the relations of ``{\rm SL}_2(\mathbb{Z})`` exactly:
+``S^4 = 1`` holds, but ``(ST)^3 = S^2`` only holds up to multiples of the sum of all puncture loops.
+
+```jldoctest
+julia> action_of_s_on_extended_homology_of_tn(2)
+[ 0   -1   0   0   0   0]
+[ 1    0   0   0   0   0]
+[-1    0   1   0   0   0]
+[ 0    0   0   0   1   0]
+[-1    0   0   1   0   0]
+[ 0    0   0   0   0   1]
+```
 """
 function action_of_s_on_extended_homology_of_tn(n::Int)
     N = n^2 + 1
@@ -222,4 +250,66 @@ function action_of_s_on_extended_homology_of_tn(n::Int)
     end
 
     return matrix(ZZ, mat)
+end
+
+@doc raw"""
+    apply_T_to_loop(n::Int, k::Int)
+
+Returns: the index of the loop obtained by applying the generator ``T`` of ``{\rm SL}_2(\mathbb{Z})`` to the loop with index ``k`` in the homology of ``T_n`` with respect to ``L``. This is simply the index of the loop obtained by shearing the loop with index ``k`` to the right while fixing the left bottom puncture, that is, the loop around the puncture ``(x, y)`` is mapped to the loop around the puncture ``(x + y, y)``.
+
+```jldoctest
+julia> Oscar.apply_T_to_loop(3, 2)
+2
+
+julia> Oscar.apply_T_to_loop(3, 4)
+5
+```
+"""
+function apply_T_to_loop(n::Int, k::Int)
+  y = div(k - 1, n)
+  x = mod(k - 1, n)
+  return n * y + mod(x + y, n) + 1
+end
+
+@doc raw"""
+    action_of_t_on_extended_homology_of_tn(n::Int)
+
+Returns: a matrix representing the action of the generator ``T`` of ``{\rm SL}_2(\mathbb{Z})`` on the homology of ``T_n`` with
+respect to ``L`` extended by the loop around the ``n^2``-th puncture.
+
+Without its last row and column, the matrix agrees with [`action_of_t_on_homology_of_tn`](@ref), except for the column of
+the loop that ``T`` maps to the loop around the ``n^2``-th puncture. That loop is not part of the basis ``L``, so in the
+non-extended homology it is replaced by minus the sum of all other puncture loops, giving the column ``(0, 0, -1, \dots, -1)``.
+In other words, both actions are compatible with the projection that maps the additional loop to minus the sum of the
+other puncture loops.
+
+Since the extended homology lacks the relation that the sum of all puncture loops is zero, this matrix and the one of
+[`action_of_s_on_extended_homology_of_tn`](@ref) do not satisfy the relations of ``{\rm SL}_2(\mathbb{Z})`` exactly:
+``S^4 = 1`` holds, but ``(ST)^3 = S^2`` only holds up to multiples of the sum of all puncture loops.
+
+```jldoctest
+julia> action_of_t_on_extended_homology_of_tn(2)
+[1    1   0   0   0   0]
+[0    1   0   0   0   0]
+[0    0   1   0   0   0]
+[0    0   0   1   0   0]
+[0   -1   0   0   0   1]
+[0    0   0   0   1   0]
+```
+"""
+function action_of_t_on_extended_homology_of_tn(n::Int)
+  N = n^2 + 1
+  T = action_of_t_on_homology_of_tn(n)
+  mat = zero_matrix(ZZ, N + 1, N + 1)
+
+  # The images of the loops a and b are the same as in the non-extended homology.
+  for j in 1:2, i in 1:N
+    mat[i, j] = T[i, j]
+  end
+
+  for k in 1:n^2
+    mat[apply_T_to_loop(n, k) + 2, k + 2] = 1
+  end
+
+  return mat
 end
