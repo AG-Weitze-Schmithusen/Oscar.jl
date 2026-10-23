@@ -9,7 +9,6 @@ include("homology_action.jl")
 include("cyclic_torus_covers.jl")
 include("normal_origami.jl")
 include("systoles.jl")
-include("build_doc.jl")
 
 @doc raw"""
     origami(h::PermGroupElem, v::PermGroupElem; check=true)
