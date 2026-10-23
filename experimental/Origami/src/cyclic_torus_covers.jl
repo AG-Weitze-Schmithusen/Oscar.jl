@@ -221,5 +221,5 @@ function action_of_s_on_extended_homology_of_tn(n::Int)
         mat[apply_S_to_loop(n, k) + 2, k + 2] = 1
     end
 
-    return mat
+    return matrix(ZZ, mat)
 end
