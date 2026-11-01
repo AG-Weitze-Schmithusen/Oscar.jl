@@ -97,13 +97,125 @@ end
   @test matrix(ZZ, [1 N; 0 1]) in G
   @test !(matrix(ZZ, [1 N + 1; 0 1]) in G)
 
-  # order must be infinite whenever the trace exceeds 2
-  x = Oscar.ModularGroupElem(G, matrix(ZZ, [N -1; 1 0]))
+  # order for some simple elements of SL(2,Z) must be correct
+  x = Oscar.ModularGroupElem(W, matrix(ZZ, [1 0; 0 1]))
+  @test order(x) == 1
+  x = Oscar.ModularGroupElem(W, matrix(ZZ, [-1 0; 0 -1]))
+  @test order(x) == 2
+  x = Oscar.ModularGroupElem(W, matrix(ZZ, [0 -1; 1 0]))
+  @test order(x) == 4
+
+  # a nontrivial matrix with trace -2 has infinite order
+  x = Oscar.ModularGroupElem(W, matrix(ZZ, [-1 1; 0 -1]))
   @test !is_finite_order(x)
+  @test_throws Oscar.InfiniteOrderError order(x)
+
+  # order must be infinite whenever the trace exceeds 2
+  x = Oscar.ModularGroupElem(W, matrix(ZZ, [N -1; 1 0]))
+  @test !is_finite_order(x)
+  @test_throws Oscar.InfiniteOrderError order(x)
   # whenever the trace is 1, the order must be 6
-  y = Oscar.ModularGroupElem(G, matrix(ZZ, [2 -3; 1 -1]))
+  y = Oscar.ModularGroupElem(W, matrix(ZZ, [2 -3; 1 -1]))
   @test order(y) == 6
 
   @test_throws ArgumentError modular_subgroup_via_right_action(cperm([1,2,3]), cperm([1,2]))
   @test_throws ArgumentError modular_subgroup_via_left_action(cperm([1,2]), cperm([3,4]))
+
+  # Powers of T belong to this subgroup exactly when the exponent is divisible by 3.
+  @testset "Membership of powers of T" begin
+    P = symmetric_group(3)
+    G = modular_subgroup_via_right_action(one(P), P(cperm([1, 2, 3])))
+    S, T = gens(Oscar._SL2Z_fp())
+
+    for (n, expected) in [(-3, true), (-1, false), (0, true),
+                          (1, false), (3, true)]
+      A = matrix(ZZ, [1 n; 0 1])
+      @test (A in G) == expected
+      @test is_word_element_of(T^n, G) == expected
+    end
+  end
+
+  # Left and right actions differ by inversion.
+  @testset "Left and right coset actions" begin
+    P = symmetric_group(3)
+    s = one(P)
+    t = P(cperm([1, 2, 3]))
+    G = modular_subgroup_via_right_action(s, t)
+    T = matrix(ZZ, [1 1; 0 1])
+
+    @test index(G) == 3
+    @test coset_right_action_of(T, G) == t
+    @test coset_left_action_of(T, G) == t^-1
+
+    H = modular_subgroup_via_left_action(s, t^-1)
+    @test t_right_perm(H) == t
+    @test H == G
+  end
+
+  # Equal indices do not imply equal subgroups or inclusion.
+  @testset "Different subgroups of index three" begin
+    P = symmetric_group(3)
+    s = P(cperm([2, 3]))
+    t = P(cperm([1, 2]))
+    H = modular_subgroup_via_right_action(s, t)
+    K = modular_subgroup_via_right_action(t, s)
+    S = matrix(ZZ, [0 -1; 1 0])
+    T = matrix(ZZ, [1 1; 0 1])
+
+    @test index(H) == index(K) == 3
+    @test S in H
+    @test !(S in K)
+    @test T in K
+    @test !(T in H)
+    @test H != K
+    @test !issubset(H, K)
+    @test !issubset(K, H)
+  end
+
+  # Relations and transitivity are separate requirements for a coset action.
+  @testset "Invalid coset actions" begin
+    P2 = symmetric_group(2)
+    s = one(P2)
+    t = P2(cperm([1, 2]))
+
+    @test !defines_coset_action_s_t(s, t)
+    @test_throws ArgumentError modular_subgroup_via_right_action(s, t)
+
+    P3 = symmetric_group(3)
+    u = P3(cperm([2, 3]))
+
+    @test !defines_coset_action_s_t(u, u)
+    @test_throws ArgumentError modular_subgroup_via_right_action(u, u)
+  end
+
+  # Invalid shapes and determinants cannot represent elements of SL(2,Z).
+  @testset "Invalid matrices" begin
+    bad_matrices = [
+      identity_matrix(ZZ, 1),
+      identity_matrix(ZZ, 3),
+      matrix(ZZ, [1 0 0; 0 1 0]),
+      zero_matrix(ZZ, 2, 2),
+      matrix(ZZ, [1 0; 0 -1]),
+      matrix(ZZ, [2 0; 0 1]),
+    ]
+
+    for A in bad_matrices
+      @test !(A in W)
+      @test !(A in H)
+      @test_throws ArgumentError s_t_decomposition(A)
+      @test_throws ArgumentError coset_right_action_of(A, H)
+      @test_throws ArgumentError coset_left_action_of(A, H)
+    end
+  end
+
+  # Finite-index modular subgroups are infinite, nonabelian and finitely generated.
+  @testset "Group properties" begin
+    for G in (W, H)
+      @test !is_trivial(G)
+      @test !is_finite(G)
+      @test !is_abelian(G)
+      @test !is_cyclic(G)
+      @test is_finitely_generated(G)
+    end
+  end
 end
