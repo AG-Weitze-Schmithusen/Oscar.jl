@@ -17,6 +17,8 @@ j_right_perm
 word_gens
 s_t_decomposition
 is_word_element_of
+right_coset_representatives
+left_coset_representatives
 coset_right_action_of
 coset_left_action_of
 defines_coset_action_s_t

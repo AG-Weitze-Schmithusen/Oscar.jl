@@ -152,6 +152,27 @@ end
     @test H == G
   end
 
+  # The i-th right coset representative maps the identity coset to coset i,
+  # and the left coset representatives are their inverses.
+  @testset "Coset representatives" begin
+    s = cperm([1, 2], [3, 4], [5, 6], [7, 8], [9, 10])
+    t = cperm([1, 4], [2, 5, 9, 10, 8], [3, 7, 6])
+    G = modular_subgroup_via_right_action(s, t)
+    S, T = gens(Oscar._SL2Z_fp())
+
+    reps = @inferred right_coset_representatives(G)
+    @test length(reps) == index(G)
+    @test all(Oscar._image_of_pt(reps[i], G, 1) == i for i in 1:index(G))
+    @test reps == [one(S), S, T*S, T, S*T, S*T*S, S*T^-1*S, S*T^-1, S*T^2, S*T^-2]
+
+    @test right_coset_representatives(W) == [one(S)]
+
+    lreps = @inferred left_coset_representatives(G)
+    @test lreps == inv.(reps)
+    @test all(Oscar._image_of_pt(inv(lreps[i]), G, 1) == i for i in 1:index(G))
+    @test left_coset_representatives(W) == [one(S)]
+  end
+
   # Equal indices do not imply equal subgroups or inclusion.
   @testset "Different subgroups of index three" begin
     P = symmetric_group(3)

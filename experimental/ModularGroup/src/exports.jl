@@ -3,9 +3,11 @@ export coset_right_action_of
 export defines_coset_action_s_t
 export is_word_element_of
 export j_right_perm
+export left_coset_representatives
 export modular_subgroup_via_left_action
 export modular_subgroup_via_right_action
 export r_right_perm
+export right_coset_representatives
 export s_right_perm
 export s_t_decomposition
 export t_right_perm

@@ -297,6 +297,82 @@ function word_gens(G::ModularGroup)
   return [inc(h) for h in gens(H)]
 end
 
+@doc raw"""
+    right_coset_representatives(G::ModularGroup)
+
+Return representatives of the right cosets of `G` in ``{\rm SL}_2(\mathbb{Z})``
+as words in the generators `S` and `T`, see [`s_t_decomposition`](@ref).
+
+The ``i``-th entry represents the coset with label ``i``, i.e. it maps the coset
+``1`` of the identity to the coset ``i`` under the action given by
+[`s_right_perm`](@ref) and [`t_right_perm`](@ref).
+The representatives are found by a breadth-first search through the coset graph,
+so each one is a shortest word in `S`, `T` and their inverses.
+
+# Examples
+```jldoctest
+julia> G = modular_subgroup_via_right_action(cperm([1, 2]), cperm([2, 3]))
+modular subgroup of index 3
+
+julia> right_coset_representatives(G)
+3-element Vector{FPGroupElem}:
+ <identity ...>
+ S
+ S*T
+```
+"""
+@attr Vector{FPGroupElem} function right_coset_representatives(G::ModularGroup)
+  n = index(G)
+  S, T = gens(_SL2Z_fp())
+  perms = (s_right_perm(G), s_right_perm(G)^-1, t_right_perm(G), t_right_perm(G)^-1)
+  words = (S, S^-1, T, T^-1)
+
+  reps = Vector{FPGroupElem}(undef, n)
+  reps[1] = one(S)
+  queue = [1]
+  sizehint!(queue, n)
+  head = 1
+
+  while head <= length(queue)
+    x = queue[head]
+    head += 1
+    for (p, w) in zip(perms, words)
+      y = x^p
+      isassigned(reps, y) && continue
+      reps[y] = reps[x] * w
+      push!(queue, y)
+    end
+  end
+
+  return reps
+end
+
+@doc raw"""
+    left_coset_representatives(G::ModularGroup)
+
+Return representatives of the left cosets of `G` in ``{\rm SL}_2(\mathbb{Z})``
+as words in the generators `S` and `T`, see [`s_t_decomposition`](@ref).
+
+These are the inverses of the words returned by [`right_coset_representatives`](@ref),
+so the ``i``-th entry represents the left coset with label ``i`` under the bijection
+``gG \mapsto Gg^{-1}``, see [`coset_left_action_of`](@ref).
+
+# Examples
+```jldoctest
+julia> G = modular_subgroup_via_right_action(cperm([1, 2]), cperm([2, 3]))
+modular subgroup of index 3
+
+julia> left_coset_representatives(G)
+3-element Vector{FPGroupElem}:
+ <identity ...>
+ S^-1
+ T^-1*S^-1
+```
+"""
+@attr Vector{FPGroupElem} function left_coset_representatives(G::ModularGroup)
+  return [inv(w) for w in right_coset_representatives(G)]
+end
+
 @attr Vector{ModularGroupElem} function gens(G::ModularGroup)
   w_gens = word_gens(G)
   phi = _matrix_hom()
