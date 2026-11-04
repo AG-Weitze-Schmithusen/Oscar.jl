@@ -1,5 +1,9 @@
 # To be implemented by subtypes:
 # Mandatory:
+#   MyLieAlgebraElem{C}(L::MyLieAlgebra{C}, mat::MatElem{C}) -> MyLieAlgebraElem{C}
+#     - inner constructor; further fields (e.g. caches) stay unset
+#     - `mat` is the `1 x dim(L)` coefficient row
+#     - no sanity checks, `LieAlgebraElem(L, mat)` does them
 #   parent_type(::Type{MyLieAlgebraElem{C}}) = MyLieAlgebra{C}
 #   elem_type(::Type{MyLieAlgebra{C}}) = MyLieAlgebraElem{C}
 #   parent(x::MyLieAlgebraElem{C}) -> MyLieAlgebra{C}
@@ -52,7 +56,7 @@ function basis(L::LieAlgebra, i::Int)
   R = coefficient_ring(L)
   v = zero_matrix(R, 1, dim(L))
   v[1, i] = one(R)
-  return L(v)
+  return LieAlgebraElem(L, v)
 end
 
 @doc raw"""
@@ -90,8 +94,8 @@ end
 
 Return the coefficients of `x` with respect to [`basis(::LieAlgebra)`](@ref).
 """
-function coefficients(x::LieAlgebraElem)
-  return collect(_matrix(x))[1, :]
+function coefficients(x::LieAlgebraElem{C}) where {C<:FieldElem}
+  return C[_matrix(x)[1, i] for i in 1:dim(parent(x))]
 end
 
 @doc raw"""
@@ -113,7 +117,7 @@ function getindex(x::LieAlgebraElem, i::Int)
 end
 
 function Base.deepcopy_internal(x::LieAlgebraElem, dict::IdDict)
-  return parent(x)(deepcopy_internal(_matrix(x), dict))
+  return LieAlgebraElem(parent(x), deepcopy_internal(_matrix(x), dict))
 end
 
 function check_parent(x1::LieAlgebraElem{C}, x2::LieAlgebraElem{C}) where {C<:FieldElem}
@@ -159,45 +163,83 @@ function (L::LieAlgebra)()
 end
 
 @doc raw"""
-    (L::LieAlgebra{C})(v::AbstractVector{Int}) -> LieAlgebraElem{C}
+    LieAlgebraElem(L::LieAlgebra{C}, v::AbstractVector{Int}) -> LieAlgebraElem{C}
 
 Return the element of `L` with coefficient vector `v`.
-Fail, if `Int` cannot be coerced into the base ring of `L`.
+
+Fail, if `Int` cannot be coerced into the coefficient ring of `L`.
 """
-function (L::LieAlgebra)(v::AbstractVector{Int})
-  return L(coefficient_ring(L).(v))
+function LieAlgebraElem(L::LieAlgebra, v::AbstractVector{Int})
+  return LieAlgebraElem(L, coefficient_ring(L).(v))
 end
 
 @doc raw"""
-    (L::LieAlgebra{C})(v::AbstractVector{C}) -> LieAlgebraElem{C}
+    LieAlgebraElem(L::LieAlgebra{C}, v::AbstractVector{C}) -> LieAlgebraElem{C}
 
 Return the element of `L` with coefficient vector `v`.
 """
-function (L::LieAlgebra{C})(v::AbstractVector{C}) where {C<:FieldElem}
+function LieAlgebraElem(L::LieAlgebra{C}, v::AbstractVector{C}) where {C<:FieldElem}
   @req length(v) == dim(L) "Length of vector does not match dimension."
   mat = matrix(coefficient_ring(L), 1, length(v), v)
   return elem_type(L)(L, mat)
 end
 
 @doc raw"""
-    (L::LieAlgebra{C})(mat::MatElem{C}) -> LieAlgebraElem{C}
+    LieAlgebraElem(L::LieAlgebra{C}, mat::MatElem{C}) -> LieAlgebraElem{C}
 
 Return the element of `L` with coefficient vector equivalent to
 the $1 \times \dim(L)$ matrix `mat`.
+
+`mat` is not copied and must not be modified afterwards.
 """
-function (L::LieAlgebra{C})(mat::MatElem{C}) where {C<:FieldElem}
+function LieAlgebraElem(L::LieAlgebra{C}, mat::MatElem{C}) where {C<:FieldElem}
+  @req mat isa dense_matrix_type(C) "Invalid matrix type."
   @req size(mat) == (1, dim(L)) "Invalid matrix dimensions."
   return elem_type(L)(L, mat)
+end
+
+@doc raw"""
+    LieAlgebraElem(L::LieAlgebra{C}, v::SRow{C}) -> LieAlgebraElem{C}
+
+Return the element of `L` with coefficient vector `v`.
+"""
+function LieAlgebraElem(L::LieAlgebra{C}, v::SRow{C}) where {C<:FieldElem}
+  mat = dense_row(v, dim(L))
+  return elem_type(L)(L, mat)
+end
+
+@doc raw"""
+    (L::LieAlgebra{C})(v::AbstractVector{Int}) -> LieAlgebraElem{C}
+
+Return the element of `L` with coefficient vector `v`.
+
+Fail, if `Int` cannot be coerced into the coefficient ring of `L`.
+This is a shorthand for [`LieAlgebraElem(L, v)`](@ref LieAlgebraElem(::LieAlgebra, ::AbstractVector{Int})).
+"""
+function (L::LieAlgebra)(v::AbstractVector{Int})
+  return LieAlgebraElem(L, v)
+end
+
+@doc raw"""
+    (L::LieAlgebra{C})(v::AbstractVector{C}) -> LieAlgebraElem{C}
+
+Return the element of `L` with coefficient vector `v`.
+
+This is a shorthand for [`LieAlgebraElem(L, v)`](@ref LieAlgebraElem(::LieAlgebra{C}, ::AbstractVector{C}) where {C<:FieldElem}).
+"""
+function (L::LieAlgebra{C})(v::AbstractVector{C}) where {C<:FieldElem}
+  return LieAlgebraElem(L, v)
 end
 
 @doc raw"""
     (L::LieAlgebra{C})(v::SRow{C}) -> LieAlgebraElem{C}
 
 Return the element of `L` with coefficient vector `v`.
+
+This is a shorthand for [`LieAlgebraElem(L, v)`](@ref LieAlgebraElem(::LieAlgebra{C}, ::SRow{C}) where {C<:FieldElem}).
 """
 function (L::LieAlgebra{C})(v::SRow{C}) where {C<:FieldElem}
-  mat = dense_row(v, dim(L))
-  return elem_type(L)(L, mat)
+  return LieAlgebraElem(L, v)
 end
 
 @doc raw"""
@@ -206,7 +248,7 @@ end
 Return `x`. Fails if `x` is not an element of `L`.
 """
 function (L::LieAlgebra{C})(x::LieAlgebraElem{C}) where {C<:FieldElem}
-  @req L === parent(x) "Incompatible modules."
+  @req L === parent(x) "Incompatible Lie algebras."
   return x
 end
 
@@ -217,35 +259,35 @@ end
 ###############################################################################
 
 function Base.:-(x::LieAlgebraElem{C}) where {C<:FieldElem}
-  return parent(x)(-_matrix(x))
+  return LieAlgebraElem(parent(x), -_matrix(x))
 end
 
 function Base.:+(x1::LieAlgebraElem{C}, x2::LieAlgebraElem{C}) where {C<:FieldElem}
   check_parent(x1, x2)
-  return parent(x1)(_matrix(x1) + _matrix(x2))
+  return LieAlgebraElem(parent(x1), _matrix(x1) + _matrix(x2))
 end
 
 function Base.:-(x1::LieAlgebraElem{C}, x2::LieAlgebraElem{C}) where {C<:FieldElem}
   check_parent(x1, x2)
-  return parent(x1)(_matrix(x1) - _matrix(x2))
+  return LieAlgebraElem(parent(x1), _matrix(x1) - _matrix(x2))
 end
 
 function Base.:*(x::LieAlgebraElem{C}, c::C) where {C<:FieldElem}
   coefficient_ring(x) != parent(c) && error("Incompatible rings.")
-  return parent(x)(_matrix(x) * c)
+  return LieAlgebraElem(parent(x), _matrix(x) * c)
 end
 
 function Base.:*(x::LieAlgebraElem, c::U) where {U<:RationalUnion}
-  return parent(x)(_matrix(x) * c)
+  return LieAlgebraElem(parent(x), _matrix(x) * c)
 end
 
 function Base.:*(c::C, x::LieAlgebraElem{C}) where {C<:FieldElem}
   coefficient_ring(x) != parent(c) && error("Incompatible rings.")
-  return parent(x)(c * _matrix(x))
+  return LieAlgebraElem(parent(x), c * _matrix(x))
 end
 
 function Base.:*(c::U, x::LieAlgebraElem) where {U<:RationalUnion}
-  return parent(x)(c * _matrix(x))
+  return LieAlgebraElem(parent(x), c * _matrix(x))
 end
 
 function Base.:*(x::LieAlgebraElem{C}, y::LieAlgebraElem{C}) where {C<:FieldElem}
@@ -302,7 +344,7 @@ function center(L::LieAlgebra)
   end
 
   ker = kernel(mat; side=:left)
-  return ideal(L, L.(eachrow(ker)); is_basis=true)
+  return ideal(L, [LieAlgebraElem(L, row) for row in eachrow(ker)]; is_basis=true)
 end
 
 @doc raw"""
@@ -322,7 +364,7 @@ function centralizer(L::LieAlgebra, xs::AbstractVector{<:LieAlgebraElem})
 
   c_basis = kernel(mat; side=:left)
   c_dim = nrows(c_basis)
-  return sub(L, [L(c_basis[i, :]) for i in 1:c_dim]; is_basis=true)
+  return sub(L, [LieAlgebraElem(L, c_basis[i, :]) for i in 1:c_dim]; is_basis=true)
 end
 
 @doc raw"""
@@ -362,7 +404,7 @@ end
     lower_central_series(L::LieAlgebra) -> Vector{LieAlgebraIdeal}
 
 Return the lower central series of `L`, i.e. the sequence of ideals
-$L^{(0)} = L$, $L^{(i + 1)} = [L, L^{(i)}]$.
+$L^{0} = L$, $L^{i + 1} = [L, L^{i}]$.
 """
 function lower_central_series(L::LieAlgebra)
   curr = ideal(L)
@@ -494,7 +536,7 @@ end
   for (i, adxi) in enumerate(adjoint_matrices(L))
     for (j, adxj) in enumerate(adjoint_matrices(L))
       i > j && continue # killing form is symmetric
-      val = tr(adxi * adxj)
+      val = trace_of_product(adxi, adxj)
       A[j, i] = A[i, j] = val
     end
   end
@@ -527,24 +569,24 @@ function any_non_ad_nilpotent_element(L::LieAlgebra{C}) where {C<:FieldElem}
   if dim(L) <= 1
     # L is abelian and hence nilpotent
   elseif characteristic(L) == 0
+    # if L is not nilpotent, some x_i or x_i + x_j is not ad-nilpotent [Gra00; Prop. 2.7.2]
     for x in basis(L)
       !is_ad_nilpotent(x) && return x
     end
-    for (i, x) in enumerate(basis(L))
-      for (j, y) in enumerate(basis(L))
-        i > j && continue
-        xy = x * y
-        !is_ad_nilpotent(xy) && return xy
-      end
+    for (i, x) in enumerate(basis(L)), (j, y) in enumerate(basis(L))
+      i < j || continue
+      xy = x + y
+      !is_ad_nilpotent(xy) && return xy
     end
   else # characteristic > 0
     x = basis(L, 1)
     !is_ad_nilpotent(x) && return x
     K = sub(L, [x]; is_basis=true)
     while dim(K) < dim(L)
-      # find an element b in L \ K with [b,K]⊆K
+      # find an element b in L \ K with [b,K]⊆K;
+      # all elements of K are ad-nilpotent [Gra00; Prop. 2.7.1], hence N is larger than K
       N = normalizer(L, K)
-      b = basis(N, findfirst(!in(K), basis(N)))
+      b = basis(N, findfirst(!in(K), basis(N))::Int)
       !is_ad_nilpotent(b) && return b
       K = sub(L, [basis(K); b]; is_basis=true)
     end
@@ -563,7 +605,7 @@ function engel_subalgebra(x::LieAlgebraElem{C}) where {C<:FieldElem}
   n = dim(L)
   A = adjoint_matrix(x)^n
   ker = kernel(A; side=:left)
-  basis = L.(eachrow(ker))
+  basis = [LieAlgebraElem(L, row) for row in eachrow(ker)]
   L0adx = sub(L, basis; is_basis=true)
   return L0adx
 end
@@ -792,11 +834,10 @@ function _root_system_and_chevalley_basis(
 
   # In general, `coeffs` may not be squares in the coefficient field.
   # Construct a field extension `F` where they are.
-  if all(is_square, coeffs)
-    F = R
-    coeffs_F_sqrt = sqrt.(coeffs)
+  F, coeffs_F_sqrt = if all(is_square, coeffs)
+    (R, sqrt.(coeffs))
   else
-    F, coeffs_F_sqrt = _field_ext_with_sqrts(R, coeffs)
+    _field_ext_with_sqrts(R, coeffs)
   end
 
   # Construct a Lie algebra `L_F` over `F` with the same structure constants as `L`,
@@ -862,34 +903,36 @@ function _field_ext_with_sqrts(F::QQField, elems::Vector{QQFieldElem})
     return F, sqrt.(elems)
   end
   Fx, x = polynomial_ring(F; cached=false)
-  F, _ = number_field(x^2 - elems[i]; cached=false)
-  return _field_ext_with_sqrts(F, [F(c) for c in elems])
+  Fext, _ = number_field(x^2 - elems[i]; cached=false)
+  return _field_ext_with_sqrts(Fext, Fext.(elems))
 end
 
 function _field_ext_with_sqrts(F::NumField, elems::Vector{<:NumFieldElem})
   @req all(e -> parent(e) === F, elems) "Incompatible parent fields"
-  elems_F = elems
-  i = findfirst(!is_square, elems_F)
+  Fext = F
+  elems_Fext = elems
+  i = findfirst(!is_square, elems_Fext)
   while !isnothing(i)
-    Fx, x = polynomial_ring(F; cached=false)
-    F, _ = number_field(x^2 - elems_F[i]; cached=false)
-    elems_F = [F(c) for c in elems_F]
-    i = findfirst(!is_square, elems_F)
+    Fx, x = polynomial_ring(Fext; cached=false)
+    Fext, _ = number_field(x^2 - elems_Fext[i]; cached=false)
+    elems_Fext = Fext.(elems_Fext)
+    i = findfirst(!is_square, elems_Fext)
   end
-  return F, sqrt.(elems_F)
+  return Fext, sqrt.(elems_Fext)
 end
 
 function _field_ext_with_sqrts(F::FqField, elems::Vector{<:FqFieldElem})
   @req all(e -> parent(e) === F, elems) "Incompatible parent fields"
-  elems_F = elems
-  i = findfirst(!is_square, elems_F)
+  Fext = F
+  elems_Fext = elems
+  i = findfirst(!is_square, elems_Fext)
   while !isnothing(i)
-    Fx, x = polynomial_ring(F; cached=false)
-    F, _ = finite_field(x^2 - elems_F[i]; cached=false)
-    elems_F = [F(c) for c in elems_F]
-    i = findfirst(!is_square, elems_F)
+    Fx, x = polynomial_ring(Fext; cached=false)
+    Fext, _ = finite_field(x^2 - elems_Fext[i]; cached=false)
+    elems_Fext = Fext.(elems_Fext)
+    i = findfirst(!is_square, elems_Fext)
   end
-  return F, sqrt.(elems_F)
+  return Fext, sqrt.(elems_Fext)
 end
 
 function assure_root_system(L::LieAlgebra{C}) where {C<:FieldElem}
@@ -1096,17 +1139,16 @@ function abelian_lie_algebra(R::Field, n::Int)
 end
 
 @doc raw"""
-    lie_algebra(gapL::GapObj, s::Vector{<:VarName}) -> LieAlgebra{elem_type(R)}
+    lie_algebra(gapL::GapObj, s::Vector{<:VarName}) -> LieAlgebra
 
-Construct a Lie algebra isomorphic to the GAP Lie algebra `gapL`. Its basis element are named by `s`,
+Construct a Lie algebra isomorphic to the GAP Lie algebra `gapL`. Its basis elements are named by `s`,
 or by `x_i` by default.
 We require `gapL` to be a finite-dimensional GAP Lie algebra. The return type is dependent on
 properties of `gapL`, in particular, whether GAP knows about a matrix representation.
-
 """
 function lie_algebra(
   gapL::GapObj,
-  s::Vector{<:VarName}=[Symbol("x_$i") for i in 1:GAPWrap.Dimension(gapL)];
+  s::Vector{<:VarName}=[Symbol("x_$i") for i in 1:GAPWrap.Dimension(gapL)],
 )
   @req GAPWrap.IsLieAlgebra(gapL) "input must be a Lie algebra."
   if GAPWrap.IsFiniteDimensional(gapL)

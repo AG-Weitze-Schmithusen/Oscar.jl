@@ -23,8 +23,11 @@ This function is used internally when calling `hom` with `check=true`.
 """
 function is_welldefined(h::LieAlgebraHom)
   L1 = domain(h)
-  for x1 in basis(L1), x2 in basis(L1)
-    h(x1) * h(x2) == h(x1 * x2) || return false
+  b = basis(L1)
+  imgs = [h(x) for x in b]
+  for (i, (xi, hxi)) in enumerate(zip(b, imgs)), (j, (xj, hxj)) in enumerate(zip(b, imgs))
+    i < j || continue
+    hxi * hxj == h(xi * xj) || return false
   end
   return true
 end
@@ -91,7 +94,7 @@ Return the image of `x` under `h`.
 """
 function image(h::LieAlgebraHom, x::LieAlgebraElem)
   @req parent(x) === domain(h) "Domain mismatch"
-  return codomain(h)(_matrix(x) * matrix(h))
+  return LieAlgebraElem(codomain(h), _matrix(x) * matrix(h))
 end
 
 @doc raw"""
@@ -132,7 +135,7 @@ function kernel(h::LieAlgebraHom)
   ker_b = kernel(matrix(h); side=:left)
   ker_dim = nrows(ker_b)
 
-  return ideal(domain(h), [domain(h)(ker_b[i, :]) for i in 1:ker_dim])
+  return ideal(domain(h), [LieAlgebraElem(domain(h), ker_b[i, :]) for i in 1:ker_dim])
 end
 
 ###############################################################################

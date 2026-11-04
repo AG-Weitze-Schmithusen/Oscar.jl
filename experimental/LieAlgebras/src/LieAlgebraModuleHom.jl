@@ -24,9 +24,11 @@ Return `true` if `h` is a well-defined homomorphism of Lie algebra modules.
 This function is used internally when calling `hom` with `check=true`.
 """
 function is_welldefined(h::LieAlgebraModuleHom)
-  V1 = domain(h)
-  for x in basis(base_lie_algebra(V1)), v in basis(V1)
-    x * h(v) == h(x * v) || return false
+  # h(x * v) = x * h(v) for all v reads T1_x * M = M * T2_x for the right actions
+  M = matrix(h)
+  for (T1, T2) in
+      zip(transformation_matrices(domain(h)), transformation_matrices(codomain(h)))
+    T1 * M == M * T2 || return false
   end
   return true
 end
@@ -95,7 +97,7 @@ function image(
   h::LieAlgebraModuleHom{T1,T2}, v::LieAlgebraModuleElem
 ) where {T1<:LieAlgebraModule,T2<:LieAlgebraModule}
   @req parent(v) === domain(h) "Domain mismatch"
-  return codomain(h)(_matrix(v) * matrix(h))
+  return LieAlgebraModuleElem(codomain(h), _matrix(v) * matrix(h))
 end
 
 # TODO: image and kernel, once submodules are implemented
@@ -426,7 +428,7 @@ function hom_direct_sum(
   fl, Ws = Oscar._is_direct_sum(W)
   @req fl "Second module must be a direct sum"
   @req length(Vs) == length(Ws) == length(hs) "Length mismatch"
-  @req all(i -> domain(hs[i]) === Vs[i] && codomain(hs[i]) === Ws[i], 1:length(hs)) "Domain/codomain mismatch"
+  @req all(domain(h) === Vi && codomain(h) === Wi for (h, Vi, Wi) in zip(hs, Vs, Ws)) "Domain/codomain mismatch"
 
   return hom(V, W, diagonal_matrix(matrix.(hs)); check=false)
 end
@@ -447,20 +449,20 @@ function hom_tensor(
   if ((fl, Vs) = _is_tensor_product(V); fl)
     # nothing to do
   elseif ((fl, Vb, k) = _is_tensor_power(V); fl)
-    Vs = [Vb for _ in 1:k]
+    Vs = fill(Vb, k)
   else
     throw(ArgumentError("First module must be a tensor product or power"))
   end
   if ((fl, Ws) = _is_tensor_product(W); fl)
     # nothing to do
   elseif ((fl, Wb, k) = _is_tensor_power(W); fl)
-    Ws = [Wb for _ in 1:k]
+    Ws = fill(Wb, k)
   else
     throw(ArgumentError("Second module must be a tensor product or power"))
   end
 
   @req length(Vs) == length(Ws) == length(hs) "Length mismatch"
-  @req all(i -> domain(hs[i]) === Vs[i] && codomain(hs[i]) === Ws[i], 1:length(hs)) "Domain/codomain mismatch"
+  @req all(domain(h) === Vi && codomain(h) === Wi for (h, Vi, Wi) in zip(hs, Vs, Ws)) "Domain/codomain mismatch"
 
   mat = reduce(
     kronecker_product,
@@ -468,32 +470,6 @@ function hom_tensor(
     init=identity_matrix(coefficient_ring(W), 1),
   )
   return hom(V, W, mat; check=false)
-end
-
-function _induced_map_on_power(
-  D::LieAlgebraModule, C::LieAlgebraModule, h::LieAlgebraModuleHom, power::Int, type::Symbol
-)
-  TD = type == :tensor ? D : get_attribute(D, :embedding_tensor_power)::typeof(D)
-  TC = type == :tensor ? C : get_attribute(C, :embedding_tensor_power)::typeof(C)
-
-  mat = reduce(
-    kronecker_product,
-    [matrix(h) for _ in 1:power];
-    init=identity_matrix(coefficient_ring(C), 1),
-  )
-  TD_to_TC = hom(TD, TC, mat; check=false)
-
-  if type == :tensor
-    return TD_to_TC
-  else
-    D_to_TD = get_attribute(
-      D, :embedding_tensor_power_embedding
-    )::LieAlgebraModuleHom{typeof(D),typeof(TD)}
-    TC_to_C = get_attribute(
-      C, :embedding_tensor_power_projection
-    )::LieAlgebraModuleHom{typeof(TC),typeof(C)}
-    return D_to_TD * TD_to_TC * TC_to_C
-  end
 end
 
 @doc raw"""
@@ -517,7 +493,14 @@ function exterior_power(
   @req k == domain_k == codomain_k "Exponent mismatch"
   @req Oscar.domain(h) === domain_base && Oscar.codomain(h) === codomain_base "Domain/codomain mismatch"
 
-  return _induced_map_on_power(domain, codomain, h, k, :ext)
+  # a wedge product of basis vectors maps to the wedge product of their images
+  imgs = [h(v) for v in basis(domain_base)]
+  return hom(
+    domain,
+    codomain,
+    [codomain(Tuple(imgs[i] for i in I)) for I in combinations(1:length(imgs), k)];
+    check=false,
+  )
 end
 
 @doc raw"""
@@ -541,7 +524,14 @@ function symmetric_power(
   @req k == domain_k == codomain_k "Exponent mismatch"
   @req Oscar.domain(h) === domain_base && Oscar.codomain(h) === codomain_base "Domain/codomain mismatch"
 
-  return _induced_map_on_power(domain, codomain, h, k, :sym)
+  # a monomial in basis vectors maps to the monomial in their images
+  imgs = [h(v) for v in basis(domain_base)]
+  return hom(
+    domain,
+    codomain,
+    [codomain(Tuple(imgs[i] for i in I)) for I in multicombinations(length(imgs), k)];
+    check=false,
+  )
 end
 
 @doc raw"""
@@ -565,5 +555,9 @@ function tensor_power(
   @req domain_k == codomain_k "Exponent mismatch"
   @req Oscar.domain(h) === domain_base && Oscar.codomain(h) === codomain_base "Domain/codomain mismatch"
 
-  return _induced_map_on_power(domain, codomain, h, k, :tensor)
+  mat = reduce(
+    kronecker_product, [matrix(h) for _ in 1:k];
+    init=identity_matrix(coefficient_ring(codomain), 1),
+  )
+  return hom(domain, codomain, mat; check=false)
 end
