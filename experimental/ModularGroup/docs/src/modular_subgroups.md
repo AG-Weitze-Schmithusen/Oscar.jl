@@ -16,6 +16,7 @@ j_right_perm
 ```@docs
 word_gens
 s_t_decomposition
+s_t_presentation
 is_word_element_of
 right_coset_representatives
 left_coset_representatives

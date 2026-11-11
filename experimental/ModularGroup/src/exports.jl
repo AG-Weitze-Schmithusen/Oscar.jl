@@ -10,5 +10,6 @@ export r_right_perm
 export right_coset_representatives
 export s_right_perm
 export s_t_decomposition
+export s_t_presentation
 export t_right_perm
 export word_gens

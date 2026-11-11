@@ -19,7 +19,10 @@
   @test (@inferred r_right_perm(G)) == cperm([1,7,9,10,6], [2,3], [4,5,8])
   @test (@inferred j_right_perm(G)) == cperm([1,8,3], [2,4,6], [5,7,10])
 
-  SL2Z = Oscar._SL2Z_fp()
+  # all words live in the same cached presentation
+  SL2Z = @inferred s_t_presentation()
+  @test s_t_presentation() === SL2Z
+  @test parent(s_t_decomposition(matrix(ZZ, [2 1; 1 1]))) === SL2Z
   S, T = gens(SL2Z)
   actual_gens = @inferred word_gens(G)
   expected_gens = [
@@ -125,7 +128,7 @@ end
   @testset "Membership of powers of T" begin
     P = symmetric_group(3)
     G = modular_subgroup_via_right_action(one(P), P(cperm([1, 2, 3])))
-    S, T = gens(Oscar._SL2Z_fp())
+    S, T = gens(s_t_presentation())
 
     for (n, expected) in [(-3, true), (-1, false), (0, true),
                           (1, false), (3, true)]
@@ -158,7 +161,7 @@ end
     s = cperm([1, 2], [3, 4], [5, 6], [7, 8], [9, 10])
     t = cperm([1, 4], [2, 5, 9, 10, 8], [3, 7, 6])
     G = modular_subgroup_via_right_action(s, t)
-    S, T = gens(Oscar._SL2Z_fp())
+    S, T = gens(s_t_presentation())
 
     reps = @inferred right_coset_representatives(G)
     @test length(reps) == index(G)

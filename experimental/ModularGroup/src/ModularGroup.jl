@@ -225,6 +225,33 @@ function _SL2Z_fp()
   return _SL2Z_FP_CACHE[]::FPGroup
 end
 
+@doc raw"""
+    s_t_presentation()
+
+Return the finitely presented group
+``\langle S, T \mid S^4, (S^3 T)^3, S^2 T S^{-2} T^{-1} \rangle \cong {\rm SL}_2(\mathbb{Z})``,
+where `S` and `T` correspond to the matrices
+```math
+S = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}, \qquad T = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
+```
+All words in `S` and `T` returned by this package, for example by
+[`s_t_decomposition`](@ref) and [`word_gens`](@ref), are elements of this group,
+and words passed to [`is_word_element_of`](@ref) must be elements of it as well.
+Every call returns the same group.
+
+# Examples
+```jldoctest
+julia> SL2Z = s_t_presentation()
+Finitely presented group
+
+julia> S, T = gens(SL2Z);
+
+julia> s_t_decomposition(matrix(ZZ, [1 2; 0 1])) == T^2
+true
+```
+"""
+s_t_presentation() = _SL2Z_fp()
+
 _matrix_S() = matrix(ZZ, [0 -1; 1 0])
 _matrix_T() = matrix(ZZ, [1 1; 0 1])
 
@@ -397,9 +424,8 @@ Return the matrix `M` in ``{\rm SL}_2(\mathbb{Z})`` as a word in the generators
 ```math
 S = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}, \qquad T = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
 ```
-The word is an element of the finitely presented group
-``\langle S, T \mid S^4, (S^3 T)^3, S^2 T S^{-2} T^{-1} \rangle \cong {\rm SL}_2(\mathbb{Z})``,
-which is its `parent`. All words in `S` and `T` used by this package live in this group.
+The word is an element of the finitely presented group returned by
+[`s_t_presentation`](@ref).
 
 # Examples
 ```jldoctest
@@ -495,14 +521,15 @@ end
     is_word_element_of(w::FPGroupElem, G::ModularGroup)
 
 Return whether the word `w` in the generators `S` and `T` of
-``{\rm SL}_2(\mathbb{Z})`` represents an element of `G`, see [`s_t_decomposition`](@ref).
+``{\rm SL}_2(\mathbb{Z})`` represents an element of `G`.
+The word must be an element of the group returned by [`s_t_presentation`](@ref).
 
 # Examples
 ```jldoctest
 julia> G = modular_subgroup_via_right_action(cperm([2, 3]), cperm([1, 2]))
 modular subgroup of index 3
 
-julia> S, T = gens(parent(s_t_decomposition(identity_matrix(ZZ, 2))));
+julia> S, T = gens(s_t_presentation());
 
 julia> is_word_element_of(T^2, G)
 true
