@@ -112,6 +112,17 @@ end
   @test matrix(ZZ, [1 N; 0 1]) in G
   @test !(matrix(ZZ, [1 N + 1; 0 1]) in G)
 
+  # words are turned into matrices and coset actions correctly, also for huge exponents
+  S, T = gens(s_t_presentation())
+  @test all(Oscar._matrix_of_word(S^k) == matrix(ZZ, [0 -1; 1 0])^mod(k, 4) for k in -5:5)
+  @test Oscar._matrix_of_word(T^N) == matrix(ZZ, [1 N; 0 1])
+  M = matrix(ZZ, [N+1 N; 1 1])
+  B = matrix(ZZ, [2 1; 1 1])
+  @test Oscar._matrix_of_word(s_t_decomposition(M)) == M
+  @test coset_right_action_of(matrix(ZZ, [1 N; 0 1]), G) == t_right_perm(G)^N
+  @test coset_right_action_of(M * B, G) == coset_right_action_of(M, G) * coset_right_action_of(B, G)
+  @test coset_left_action_of(M, G) == inv(coset_right_action_of(M, G))
+
   # order for some simple elements of SL(2,Z) must be correct
   x = Oscar.ModularGroupElem(W, matrix(ZZ, [1 0; 0 1]))
   @test order(x) == 1
