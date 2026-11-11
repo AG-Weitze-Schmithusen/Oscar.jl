@@ -1237,7 +1237,7 @@ function minimal_denominators(
   if !has_attribute(f, :minimal_denominators) 
     helper_ring(f)
   end
-  return get_attribute!(f, :minimal_denominators)::Vector{elem_type(base_ring_type(domain(f)))}
+  return get_attribute(f, :minimal_denominators)::Vector{elem_type(base_ring_type(domain(f)))}
 end
 
 function helper_eta(
@@ -2902,6 +2902,7 @@ end
 function _evaluate_general(
     F::MPolyAnyMap{<:MPolyRing, CT}, u
   ) where {CT <: Union{<:MPolyQuoRing, <:MPolyLocRing, <:MPolyQuoLocRing}}
+  is_empty(F.img_gens) && return _evaluate_constant(codomain(F), u, coefficient_map(F))
   S = temp_ring(F)
   fl, var_ind = _maps_variables_to_variables(F)
   if S !== nothing
