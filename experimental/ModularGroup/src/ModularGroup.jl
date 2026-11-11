@@ -289,7 +289,6 @@ function word_gens(G::ModularGroup)
   P = _perm_group(G)
   phi = _coset_action_hom(G)
 
-  # TODO: might need to check whether this is efficient enough for large index
   Hperm, _ = stabilizer(P, 1)
 
   H, inc = preimage(phi, Hperm)
