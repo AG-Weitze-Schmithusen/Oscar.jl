@@ -264,7 +264,7 @@ end
   ModularGroupElem(parent(x), matrix(x)^n)
 
 ==(x::ModularGroupElem, y::ModularGroupElem) =
-  parent(x) === parent(y) && matrix(x) == matrix(y)
+  matrix(x) == matrix(y)
 
 Base.hash(x::ModularGroupElem, h::UInt) = hash(matrix(x), h)
 
