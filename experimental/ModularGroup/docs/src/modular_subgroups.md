@@ -5,6 +5,7 @@
 ```@docs
 modular_subgroup_via_right_action
 modular_subgroup_via_left_action
+(G::ModularGroup)(A::ZZMatrix)
 s_right_perm
 t_right_perm
 r_right_perm

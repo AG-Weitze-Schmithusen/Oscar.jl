@@ -105,6 +105,47 @@ matrix(x::ModularGroupElem) = x.mat
 one(G::ModularGroup) = ModularGroupElem(G, identity_matrix(ZZ, 2))
 one(x::ModularGroupElem) = one(parent(x))
 
+@doc raw"""
+    (G::ModularGroup)(A::ZZMatrix; check::Bool=true)
+    (G::ModularGroup)(A::AbstractVecOrMat; check::Bool=true)
+    (G::ModularGroup)(x::ModularGroupElem; check::Bool=true)
+
+Return the element of `G` given by the matrix `A` in ``{\rm SL}_2(\mathbb{Z})``,
+or by the matrix of `x`, which may be an element of a different modular subgroup.
+
+For `check = true`, an `ArgumentError` is thrown if the matrix is not in `G`.
+For `check = false`, no test is performed.
+
+# Examples
+```jldoctest
+julia> G = modular_subgroup_via_right_action(cperm([2, 3]), cperm([1, 2]))
+modular subgroup of index 3
+
+julia> x = G([1 2; 0 1])
+[1 2; 0 1] in modular group of index 3
+
+julia> x == G(matrix(ZZ, [1 2; 0 1]))
+true
+
+julia> G([1 1; 0 1])
+ERROR: ArgumentError: Element not in the group
+```
+"""
+function (G::ModularGroup)(A::ZZMatrix; check::Bool=true)
+  if check
+    @req A in G "Element not in the group"
+  end
+  return ModularGroupElem(G, A)
+end
+
+function (G::ModularGroup)(A::AbstractVecOrMat; check::Bool=true)
+  return G(matrix(ZZ, 2, 2, A); check)
+end
+
+function (G::ModularGroup)(x::ModularGroupElem; check::Bool=true)
+  return G(matrix(x); check)
+end
+
 function order(::Type{T}, x::ModularGroupElem) where {T<:IntegerUnion}
   A = matrix(x)
   t = tr(A)

@@ -75,6 +75,18 @@ end
   @test x in G
   @test one(G) in G
 
+  # elements can be created by calling the group, with a membership check by default
+  @test (@inferred G(A)) == x
+  @test parent(G(A)) === G
+  @test G([1 -2; 0 1]) == x
+  @test G([1, -2, 0, 1]) == x
+  @test_throws ArgumentError G([1 1; 0 1])
+  @test_throws ArgumentError G(identity_matrix(ZZ, 3))
+  @test matrix(G([1 1; 0 1]; check = false)) == matrix(ZZ, [1 1; 0 1])
+  H3 = modular_subgroup_via_right_action(cperm([2,3]), cperm([1,2]))
+  @test parent(H3(G([1 0; 0 1]))) === H3
+  @test_throws ArgumentError H3(G([1 1; 0 1]; check = false))
+
   # permutations from different symmetric groups are coerced
   H = modular_subgroup_via_right_action(cperm([2,3]), cperm([1,2]))
   @test index(H) == 3
