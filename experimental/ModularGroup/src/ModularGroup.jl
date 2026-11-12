@@ -292,20 +292,19 @@ true
 """
 s_t_presentation() = _SL2Z_fp()
 
-_matrix_S() = matrix(ZZ, [0 -1; 1 0])
-
 # The following helpers evaluate a word in S and T (an element of `s_t_presentation()`)
 # syllable by syllable, so a syllable T^k with huge k costs as much as T.
 
 # Matrix of S^e (i = 1) or T^e (i = 2) in closed form. Powering a ZZMatrix
 # directly fails for exponents that do not fit into a UInt.
 function _matrix_of_syllable(i::Int, e::IntegerUnion)
+  matrix_S = matrix(ZZ, [0 -1; 1 0])
   i == 2 && return matrix(ZZ, 2, 2, [1, e, 0, 1])
   r = mod(e, 4)
   r == 0 && return identity_matrix(ZZ, 2)
-  r == 1 && return _matrix_S()
+  r == 1 && return matrix_S
   r == 2 && return -identity_matrix(ZZ, 2)
-  return -_matrix_S() # S^3 = S^-1 = -S
+  return - matrix_S # S^3 = S^-1 = -S
 end
 
 function _matrix_of_word(w::FPGroupElem)
@@ -499,7 +498,6 @@ function s_t_decomposition(M::ZZMatrix)
   @req size(M) == (2, 2) "Matrix needs to be in SL(2, Z)"
   @req isone(det(M)) "Matrix needs to be in SL(2, Z)"
 
-  MatS = _matrix_S()
   SL2Z = _SL2Z_fp()
   S, T = gens(SL2Z)
 
@@ -511,7 +509,7 @@ function s_t_decomposition(M::ZZMatrix)
   while !iszero(M[2, 1])
     k = div(M[2, 2], M[2, 1])
     decomp = S^-1 * T^k * decomp
-    M = M * matrix(ZZ, 2, 2, [1, -k, 0, 1]) * MatS
+    M = M * matrix(ZZ, 2, 2, [-k -1; 1 0])
   end
 
   # now M[2, 1] = 0 and since det(M) == 1, we have M == +-T^r where r = +-M[1, 2]
