@@ -324,3 +324,35 @@ end
    C = conjugate_group(H, x)
    @test order(H) == order(C)
 end
+
+@testset "Conjugate groups" begin
+   # Test the elementwise definition, invariants, degenerate cases, and a pc group.
+   G = symmetric_group(4)
+   H = stabilizer(G, 4)[1]
+   x = G([2, 3, 4, 1])
+   C = conjugate_group(H, x)
+   expected = Set(G(inv(x) * G(h) * x) for h in H)
+   opposite = Set(G(x * G(h) * inv(x)) for h in H)
+   @test !(x in H)
+   @test Set(G(h) for h in C) == expected
+   @test expected != opposite
+   @test order(C) == order(H)
+   @test index(G, C) == index(G, H)
+   @test is_subset(C, G)
+   @test C == H^x
+   @test conjugate_group(H, one(G)) == H
+   @test conjugate_group(trivial_subgroup(G)[1], x) == trivial_subgroup(G)[1]
+   @test conjugate_group(G, x) == G
+   
+   A = alternating_group(4)
+   @test conjugate_group(A, x) == A
+
+   P = dihedral_group(10)
+   r = first(y for y in gens(P) if order(y) == 5)
+   s = first(y for y in gens(P) if order(y) == 2)
+   Hpc = sub(P, [s])[1]
+   Cpc = conjugate_group(Hpc, r)
+   expectedpc = Set(P(inv(r) * P(h) * r) for h in Hpc)
+   @test Set(P(h) for h in Cpc) == expectedpc
+   @test order(Cpc) == order(Hpc)
+end
