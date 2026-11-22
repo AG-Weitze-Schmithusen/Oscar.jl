@@ -10,6 +10,25 @@
   end
 end
 
+@doc raw"""
+    ProjectiveModularGroup
+
+A finite-index subgroup of ``\mathrm{PSL}_2(\mathbb{Z})`` represented by the
+permutations describing the right action of the generators `S` and `T` on its
+cosets.
+"""
+@attributes mutable struct ProjectiveModularGroup <: Group
+  s::PermGroupElem
+  t::PermGroupElem
+
+  function ProjectiveModularGroup(s::PermGroupElem, t::PermGroupElem; check::Bool)
+    if check
+      @req defines_projective_coset_action(s, t) "s and t do not describe the action of the generators S and T on the cosets of a finite-index subgroup of PSL(2,Z)"
+    end
+    return new(s, t)
+  end
+end
+
 struct ModularGroupElem <: GroupElem
   parent::ModularGroup
   mat::ZZMatrix

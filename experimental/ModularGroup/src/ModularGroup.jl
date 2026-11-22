@@ -1,7 +1,7 @@
 include("exports.jl")
 include("types.jl")
 
-# Degree of the coset action, i.e. the index of the subgroup in SL(2,Z).
+# Degree of the coset action, i.e. the index of the subgroup in SL(2,Z) or PSL(2,Z).
 # The trivial action (index 1) moves no points.
 function _index(s::PermGroupElem, t::PermGroupElem)
   return max(1, largest_moved_point(s), largest_moved_point(t))
@@ -14,6 +14,26 @@ function modular_subgroup(s::PermGroupElem, t::PermGroupElem; check::Bool)
   s = Sym(s)
   t = Sym(t)
   return ModularGroup(s, t; check)
+end
+
+@doc raw"""
+    projective_modular_subgroup(s::PermGroupElem, t::PermGroupElem; check::Bool=true)
+
+Construct a `ProjectiveModularGroup` object corresponding to the finite-index
+subgroup of ``\mathrm{PSL}_2(\mathbb{Z})`` described by the permutations `s`
+and `t`.
+
+# Examples
+```jldoctest
+julia> projective_modular_subgroup(cperm([2, 3]), cperm([1, 2]))
+projective modular subgroup of index 3
+```
+"""
+function projective_modular_subgroup(s::PermGroupElem, t::PermGroupElem; check::Bool=true)
+  Sym = symmetric_group(_index(s, t))
+  s = Sym(s)
+  t = Sym(t)
+  return ProjectiveModularGroup(s, t; check)
 end
 
 @doc raw"""
@@ -167,7 +187,6 @@ function order(::Type{T}, x::ModularGroupElem) where {T<:IntegerUnion}
   end
 end
 
-
 function is_finite_order(x::ModularGroupElem)
   A = matrix(x)
   t = tr(A)
@@ -175,7 +194,7 @@ function is_finite_order(x::ModularGroupElem)
 end
 
 @doc raw"""
-    s_right_perm(G::ModularGroup)
+    s_right_perm(G::Union{ModularGroup, ProjectiveModularGroup})
 
 Return the permutation describing the action of the matrix ``S = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}``
 on the right cosets of `G`.
@@ -185,7 +204,7 @@ function s_right_perm(G::ModularGroup)
 end
 
 @doc raw"""
-    t_right_perm(G::ModularGroup)
+    t_right_perm(G::Union{ModularGroup, ProjectiveModularGroup})
 
 Return the permutation describing the action of the matrix ``T= \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}``
 on the right cosets of `G`.
@@ -195,7 +214,7 @@ function t_right_perm(G::ModularGroup)
 end
 
 @doc raw"""
-    r_right_perm(G::ModularGroup)
+    r_right_perm(G::Union{ModularGroup, ProjectiveModularGroup})
 
 Return the permutation describing the action of the matrix ``R= \begin{pmatrix} 1 & 0 \\ 1 & 1 \end{pmatrix}``
 on the right cosets of `G`.
@@ -205,7 +224,7 @@ on the right cosets of `G`.
 end
 
 @doc raw"""
-    j_right_perm(G::ModularGroup)
+    j_right_perm(G::Union{ModularGroup, ProjectiveModularGroup})
 
 Return the permutation describing the action of the matrix ``J= \begin{pmatrix} 0 & 1 \\ -1 & 1 \end{pmatrix}``
 on the right cosets of `G`.
@@ -239,6 +258,32 @@ function defines_coset_action_s_t(s::PermGroupElem, t::PermGroupElem)
   isone(s^4) || return false
   isone((s^3*t)^3) || return false
   isone(s^2*t*s^-2*t^-1) || return false
+  return is_transitive(permutation_group(_index(s, t), [s, t]))
+end
+
+@doc raw"""
+    defines_projective_coset_action(s::PermGroupElem, t::PermGroupElem)
+
+Return whether the elements `s` and `t` of a permutation group define a valid
+transitive coset action for ``{\rm PSL}_2(\mathbb{Z})``.
+
+# Examples
+```jldoctest
+julia> s = cperm([2, 3]); t = cperm([1, 2]);
+
+julia> defines_projective_coset_action(s, t)
+true
+
+julia> s_bad = cperm([1, 2, 3]); # Order 3 contradicts S^2 = 1
+
+julia> defines_projective_coset_action(s_bad, t)
+false
+```
+"""
+function defines_projective_coset_action(s::PermGroupElem, t::PermGroupElem)
+  isone(s^2) || return false
+  isone((s*t)^3) || return false
+
   return is_transitive(permutation_group(_index(s, t), [s, t]))
 end
 
@@ -648,3 +693,98 @@ is_cyclic(::ModularGroup) = false
 is_trivial(::ModularGroup) = false
 is_finitely_generated(::ModularGroup) = true
 #TODO random elements?
+
+# Projective modular subgroups are represented by transitive permutation
+# actions of the presentation of PSL(2, Z).
+function Base.:(==)(G::ProjectiveModularGroup, H::ProjectiveModularGroup)
+  return index(G) == index(H) && issubset(G, H)
+end
+
+@attr NTuple{3, CycleType} function _cycle_structures(G::ProjectiveModularGroup)
+  return (cycle_structure(G.s), cycle_structure(G.t), cycle_structure(G.s * G.t))
+end
+
+function Base.hash(G::ProjectiveModularGroup, h::UInt)
+  s_struc, t_struc, s_t_struc = _cycle_structures(G)
+  return hash((index(G), s_struc, t_struc, s_t_struc), h)
+end
+
+function Base.show(io::IO, G::ProjectiveModularGroup)
+  idx = index(G)
+  print(io, "projective modular subgroup of index $(idx)")
+end
+
+function s_right_perm(G::ProjectiveModularGroup)
+  return G.s
+end
+
+function t_right_perm(G::ProjectiveModularGroup)
+  return G.t
+end
+
+@attr PermGroupElem function r_right_perm(G::ProjectiveModularGroup)
+  return G.s^-1*G.t^-1*G.s
+end
+
+@attr PermGroupElem function j_right_perm(G::ProjectiveModularGroup)
+  return G.s^-1*G.t^-1
+end
+
+@attr Int function index(G::ProjectiveModularGroup)
+  return _index(s_right_perm(G), t_right_perm(G))
+end
+
+@attr PermGroup function _perm_group(G::ProjectiveModularGroup)
+  return permutation_group(index(G), [s_right_perm(G), t_right_perm(G)])
+end
+
+function Base.issubset(H::ProjectiveModularGroup, G::ProjectiveModularGroup)
+  nH = index(H)
+  nG = index(G)
+
+  # Necessary numerical conditions
+  nH >= nG || return false
+  iszero(mod(nH, nG)) || return false
+
+  sH = s_right_perm(H)
+  tH = t_right_perm(H)
+  sG = s_right_perm(G)
+  tG = t_right_perm(G)
+
+  f = zeros(Int, nH)
+  f[1] = 1
+
+  queue = Vector{Int}(undef, nH)
+  queue[1] = 1
+  head = 1
+  tail = 1
+
+  @inbounds while head <= tail
+    x = queue[head]
+    head += 1
+    fx = f[x]
+
+    for (pH, pG) in ((sH, sG), (tH, tG))
+      y = x^pH
+      fy = fx^pG
+
+      if fy < 1 || fy > nG
+        return false
+      elseif f[y] == 0
+        f[y] = fy
+        tail += 1
+        queue[tail] = y
+      elseif f[y] != fy
+        return false
+      end
+    end
+  end
+
+  return tail == nH
+end
+
+is_abelian(::ProjectiveModularGroup) = false
+is_finite(::ProjectiveModularGroup) = false
+is_cyclic(::ProjectiveModularGroup) = false
+is_trivial(::ProjectiveModularGroup) = false
+is_finitely_generated(::ProjectiveModularGroup) = true
