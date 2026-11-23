@@ -1,5 +1,4 @@
-# Construction of modular subgroups from coset actions, their generators,
-# membership tests and the S/T decomposition of SL(2,Z) matrices.
+# Construction of modular subgroups from coset actions, their generators
 @testset "Basic modular group operations" begin
   s = @perm (2, 3)
   t = @perm (1, 2)
