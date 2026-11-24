@@ -69,6 +69,43 @@ action_t_inv(o::Origami)
 action_sl2(A::ZZMatrix, o::Origami)
 ```
 
+## Homology of origamis
+
+These functions compute the homology $H = H_1(X, \mathbb{Z})$ of an origami $p\colon X \to E$ with $d$ squares,
+its tautological part $H^T$ and its non-tautological part $H^{NT}$, and the action of affine homeomorphisms on
+them. All computations are over $\mathbb{Z}$, and the returned bases are $\mathbb{Z}$-bases. All functions assume
+that the origami has no nontrivial translations.
+
+A class in $H$ is written as an integer combination of the edges of the squares, where $\sigma_i$ is the bottom
+edge and $\xi_i$ the left edge of square $i$.
+
+The tautological part $H^T$ is spanned by $\sigma = \sum_i \sigma_i$ and $\zeta = \sum_i \xi_i$, the preimages
+under $p$ of the horizontal and the vertical closed curve of the torus. Up to Poincaré duality, they are the real
+and the imaginary part of the holomorphic 1-form $\omega = p^*(dz)$ that defines the translation structure. Hence
+$H^T$ is determined by the translation structure itself, and an affine homeomorphism with derivative $A$ acts on
+it by $A$.
+
+The non-tautological part $H^{NT}$ is the kernel of
+$p_*\colon H \to H_1(E, \mathbb{Z}) \cong \mathbb{Z}^2$, where
+$p_*\bigl(\sum_i a_i \sigma_i + \sum_i b_i \xi_i\bigr) = \bigl(\sum_i a_i, \sum_i b_i\bigr)$; these are the classes
+$c$ with $\int_c \omega = 0$. It has rank $2g - 2$, is the orthogonal complement of $H^T$ with respect to the
+intersection form, and is invariant under the affine group. The image of the Veech group acting on $H^{NT}$ is the
+shadow Veech group.
+
+Over $\mathbb{Q}$, the homology splits as $H \otimes \mathbb{Q} = (H^T \otimes \mathbb{Q}) \oplus
+(H^{NT} \otimes \mathbb{Q})$. Over $\mathbb{Z}$, $H^T \oplus H^{NT}$ is in general a proper subgroup of finite
+index in $H$: since $p_*(\sigma) = (d, 0)$ and $p_*(\zeta) = (0, d)$, decomposing a class $c$ requires dividing
+$p_*(c)$ by $d$. More precisely, $H / (H^T \oplus H^{NT}) \cong p_*(H) / d\mathbb{Z}^2$. For the origami in the
+examples below, $p_*(H) = \mathbb{Z}^2$, so the index is $8^2 = 64$.
+
+```@docs
+homology(o::Origami)
+non_taut_part_of_homology(o::Origami, homology_basis)
+action_of_matrix_on_homology(o::Origami, a::Matrix)
+action_of_matrix_on_non_taut(o::Origami, a::Matrix)
+shadow_veech_group(o::Origami)
+```
+
 ## Cyclic torus covers
 
 Let $T_n$ be the torus built from $n \times n$ squares, punctured at the $n^2$ vertices of the squares. A cyclic
