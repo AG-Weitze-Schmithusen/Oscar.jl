@@ -356,3 +356,38 @@ end
    @test Set(P(h) for h in Cpc) == expectedpc
    @test order(Cpc) == order(Hpc)
 end
+
+@testset "Conjugation of modular subgroups" begin
+  # Test Gamma^0(3) in SL(2,Z), with S = [0 -1; 1 0] and T = [1 1; 0 1].
+  F = free_group([:S, :T])
+  s, t = gens(F)
+  G, _ = quo(F, [s^4, (s^3*t)^3, s^2*t*s^-2*t^-1])
+  S, T = gens(G)
+  R = T*S*T
+  H = sub(G, [S^2, T^3, R])[1]
+  expected = sub(G, [S^2, T^3, S*T^2])[1]
+  C = conjugate_group(H, T)
+
+  @test !(T in H)
+  @test C isa SubFPGroup
+  @test C == expected
+  @test C != conjugate_group(H, inv(T))
+  @test index(G, C) == index(G, H) == 4
+  @test is_subset(C, G)
+  @test C == H^T
+
+  for (w, belongs) in (
+    (one(G), true),
+    (T, false),
+    (T^3, true),
+    (R, false),
+    (S*T^2, true),
+    (S^2, true),
+  )
+    @test (w in C) == belongs
+  end
+
+  @test conjugate_group(H, one(G)) == H
+  @test conjugate_group(H, S^2) == H
+  @test conjugate_group(G, T) == G
+end
