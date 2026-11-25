@@ -2,5 +2,6 @@
     "ModularGroup" => [
         "introduction.md",
         "modular_subgroups.md",
+        "projective_modular_subgroups.md",
     ]
 ]

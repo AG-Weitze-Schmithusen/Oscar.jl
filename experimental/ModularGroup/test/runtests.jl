@@ -23,6 +23,32 @@
   SL2Z = @inferred s_t_presentation()
   @test s_t_presentation() === SL2Z
   @test parent(s_t_decomposition(matrix(ZZ, [2 1; 1 1]))) === SL2Z
+
+  # the projection onto the cached PSL2Z presentation keeps words letter by letter;
+  # words are compared by syllables since == would need the word problem
+  pr = @inferred sl2z_to_psl2z()
+  @test sl2z_to_psl2z() === pr
+  @test domain(pr) === SL2Z
+  @test codomain(pr) === Oscar._PSL2Z_fp()
+  w = s_t_decomposition(matrix(ZZ, [5 2; 2 1]))
+  @test parent(pr(w)) === Oscar._PSL2Z_fp()
+  @test syllables(pr(w)) == syllables(w)
+
+  # words in the PSL2Z presentation are accepted exactly when -I acts trivially
+  Sp, Tp = gens(Oscar._PSL2Z_fp())
+  H = modular_subgroup_via_right_action(cperm([2,3]), cperm([1,2]))   # contains -I
+  Hp = projective_modular_subgroup_via_right_action(cperm([2,3]), cperm([1,2]))
+  for K in (H, Hp)
+    @test is_word_element_of(Tp^2, K)
+    @test !is_word_element_of(Tp, K)
+    @test is_word_element_of(Sp, K)
+    @test is_word_element_of(pr(w), K) == is_word_element_of(w, K)
+  end
+  G12 = modular_subgroup_via_right_action(cperm([1,2,5,3], [4,8,10,9], [6,11,7,12]),
+                                          cperm([1,4], [2,6], [3,7], [5,10], [8,12,9,11]))   # -I not in it
+  @test_throws ArgumentError is_word_element_of(Tp^2, G12)
+  @test_throws ArgumentError is_word_element_of(gen(free_group(2), 1), H)
+
   S, T = gens(SL2Z)
   actual_gens = @inferred word_gens(G)
   expected_gens = [
