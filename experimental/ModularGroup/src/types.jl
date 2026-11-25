@@ -10,13 +10,6 @@
   end
 end
 
-@doc raw"""
-    ProjectiveModularGroup
-
-A finite-index subgroup of ``\mathrm{PSL}_2(\mathbb{Z})`` represented by the
-permutations describing the right action of the generators `S` and `T` on its
-cosets.
-"""
 @attributes mutable struct ProjectiveModularGroup <: Group
   s::PermGroupElem
   t::PermGroupElem
@@ -32,6 +25,19 @@ end
 struct ModularGroupElem <: GroupElem
   parent::ModularGroup
   mat::ZZMatrix
+end
+
+struct ProjectiveModularGroupElem <: GroupElem
+  parent::ProjectiveModularGroup
+  mat::ZZMatrix # normalized: mat[2, 1] > 0, or mat[2, 1] == 0 and mat[2, 2] > 0
+
+  function ProjectiveModularGroupElem(G::ProjectiveModularGroup, A::ZZMatrix)
+    c, d = A[2, 1], A[2, 2]
+    if c < 0 || (iszero(c) && d < 0)
+      A = -A
+    end
+    return new(G, A)
+  end
 end
 
 Base.deepcopy_internal(x::ModularGroupElem, dict::IdDict) =
