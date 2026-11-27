@@ -1,4 +1,5 @@
-# Construction of modular subgroups from coset actions, their generators
+# Construction of modular subgroups from coset actions, their generators,
+# membership tests and the S/T decomposition of SL(2,Z) matrices.
 @testset "Basic modular group operations" begin
   s = @perm (2, 3)
   t = @perm (1, 2)
@@ -217,4 +218,37 @@ end
       @test is_finitely_generated(G)
     end
   end
+end
+
+# Test conjugation of Gamma^0(3) in the module's presentation of SL(2,Z).
+@testset "Conjugation of modular subgroups" begin
+  G = Oscar._SL2Z_fp()
+  S, T = gens(G)
+  R = T*S*T
+  H = sub(G, [S^2, T^3, R])[1]
+  expected = sub(G, [S^2, T^3, S*T^2])[1]
+  C = conjugate_group(H, T)
+
+  @test !(T in H)
+  @test C isa SubFPGroup
+  @test C == expected
+  @test C != conjugate_group(H, inv(T))
+  @test index(G, C) == index(G, H) == 4
+  @test is_subset(C, G)
+  @test C == H^T
+
+  for (w, belongs) in (
+    (one(G), true),
+    (T, false),
+    (T^3, true),
+    (R, false),
+    (S*T^2, true),
+    (S^2, true),
+  )
+    @test (w in C) == belongs
+  end
+
+  @test conjugate_group(H, one(G)) == H
+  @test conjugate_group(H, S^2) == H
+  @test conjugate_group(G, T) == G
 end
